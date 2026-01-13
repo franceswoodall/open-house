@@ -6,8 +6,10 @@ const mongoose = require('mongoose');
 const methodOverride = require('method-override');
 const morgan = require('morgan');
 const session = require('express-session');
+const authController = require('./controllers/auth.js'); 
+const listingsController = require('./controllers/listings'); 
 
-const authController = require('./controllers/auth.js');
+
 
 const port = process.env.PORT ? process.env.PORT : '3000';
 
@@ -27,6 +29,8 @@ app.use(
     saveUninitialized: true,
   })
 );
+app.use('/auth', authController);
+app.use('/listings', listingsController); 
 
 app.get('/', (req, res) => {
   res.render('index.ejs', {

@@ -3,15 +3,91 @@ const router = express.Router();
 
 const Listing = require('../models/listing');
 
-module.exports = router;
-
+// get all the listings
 router.get('/', async (req, res) => {
     try {
-    const allListings = await Listing.find({}); 
-    console.log(allListings); 
-    res.render('listings/index.ejs'); 
+        const getAllListings = await Listing.find({}).populate('owner');
+        console.log('all listings', getAllListings);
+        res.render('listings/index.ejs', {
+            listings: getAllListings,
+        });
     } catch (error) {
-        console.log('Error has occured, please try again', error); 
-    }
-  });
+        console.log(error); 
+        res.redirect('/'); 
+    };
+})
 
+// create a new listing
+router.get('/new', async (req, res) => {
+    res.render('listings/new.ejs'); 
+}); 
+
+router.post('/', async (req, res) => {
+    req.body.owner = req.session.user._id; 
+    await Listing.create(req.body); 
+    res.redirect('/listings'); 
+}); 
+
+// get a specific listing
+router.get('/:listingId', async (req, res) => {
+  try {
+    const populatedListing = await Listing.findById(
+        req.params.listingId
+    ).populate('owner'); 
+    res.render('listings/show.ejs', {
+        listing: populatedListing, 
+    }); 
+  } catch (error) {
+    console.log(error);
+    res.redirect('/');
+  }
+})
+
+// DELETE /listing/listingId
+router.delete('/:listingId', async (req, res) => {
+  try {
+    //locate listing in the db
+    const listing = await Listing.findById(req.params.listingId); 
+    if (listing.owner.equals(req.session.user._id)) {
+        console.log('permission granted'); 
+        await listing.deleteOne();
+        res.redirect('/Listings'); 
+    } else {
+        res.send('you do not have the permissions to delete this listing');  
+    }
+  } catch (error) {
+    console.log(error);
+    res.redirect('/');
+  }
+})
+
+// edit the listing form
+router.get('/:listingId/edit', async (req, res) => {
+    try {
+        const currentListing = await Listing.findById(req.params.listingId); 
+        res.render('listings/edit.ejs', {
+            listing: currentListing, 
+        })
+    } catch (error) {
+        console.log(error);
+        res.redirect('/'); 
+    }
+} )
+
+// update the listing
+router.put('/:listingId', async (req, res) => {
+    try {
+        const currentListing = await Listing.findById(req.params.listingId); 
+        if (currentListing.owner.equals(req.session.user._id)) {
+            await currentListing.updateOne(req.body); 
+            res.redirect('/listings'); 
+        } else {
+            res.send('You do not have edit permissions'); 
+        }
+    } catch (error) {
+        console.log(error);
+        res.redirect('/'); 
+    }
+})
+
+module.exports = router;
